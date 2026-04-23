@@ -39,28 +39,24 @@ def call_api(region, uid):
 def auto_worker():
     while True:
         now = datetime.now()
-        # সকাল ১০টা চেক করা (১০:০০:০০ থেকে ১০:০০:৫৯ এর মধ্যে)
+        # বাংলাদেশ সময় সকাল ১০টা চেক (সার্ভার টাইম অনুযায়ী অ্যাডজাস্ট হতে পারে)
         if now.hour == 10 and now.minute == 0:
             db = load_db()
             if db:
-                to_remove = []
-                for uid, info in db.items():
+                for uid in list(db.keys()):
+                    info = db[uid]
                     res = call_api(info['region'], uid)
                     if res and res.get("status") == 1:
                         added = int(res.get("LikesGivenByAPI", 0))
                         db[uid]["total_sent"] += added
                         
-                        # লিমিট চেক (যদি 'N' না হয়)
+                        # লিমিট চেক (যদি 'Unlimited' না হয়)
                         if info['limit'] != "Unlimited":
                             if db[uid]["total_sent"] >= int(info['limit']):
-                                to_remove.append(uid)
-                
-                for uid in to_remove:
-                    del db[uid]
+                                del db[uid]
                 save_db(db)
-                print(f"✅ ১০টার অটো লাইক সম্পন্ন হয়েছে। সময়: {now}")
-            time.sleep(70) # ১ মিনিট গ্যাপ যাতে একই ১০টায় দুইবার না পাঠায়
-        time.sleep(30) # প্রতি ৩০ সেকেন্ড পরপর টাইম চেক করবে
+            time.sleep(61) 
+        time.sleep(30)
 
 threading.Thread(target=auto_worker, daemon=True).start()
 
@@ -73,7 +69,7 @@ def ignore_others(message):
 
 @bot.message_handler(commands=['start'])
 def welcome(message):
-    bot.reply_to(message, "✅ Admin System Active. Ready for your commands.")
+    bot.reply_to(message, "✅ Admin System Active.")
 
 @bot.message_handler(commands=['like'])
 def manual_like(message):
@@ -86,18 +82,19 @@ def manual_like(message):
                     f"👤 Name: {res.get('PlayerNickname')}\n"
                     f"🆔 UID: {uid}\n"
                     f"🌍 Region: {region}\n"
-                    f"📈 Added: {res.get('LikesGivenByAPI')}\n"
-                    f"🗿 Total: {res.get('LikesafterCommand')}\n"
+                    f"🤡 Likes Before: {res.get('LikesbeforeCommand')}\n"
+                    f"📈 Likes Added: {res.get('LikesGivenByAPI')}\n"
+                    f"🗿 Total Likes Now: {res.get('LikesafterCommand')}\n"
                     f"👑 Credit: {OWNER_USERNAME}")
             bot.reply_to(message, text)
 
 @bot.message_handler(commands=['add'])
 def add_auto_like(message):
     args = message.text.split()
+    # ফরম্যাট: /add (Uid) (Server) (Limit/N)
     if len(args) == 4:
         uid, region, like_limit = args[1], args[2], args[3]
         
-        # আনলিমিটেড হ্যান্ডলিং
         limit_val = "Unlimited" if like_limit.upper() == 'N' else like_limit
         
         res = call_api(region, uid)
@@ -115,8 +112,9 @@ def add_auto_like(message):
                     f"👤 Name: {res.get('PlayerNickname')}\n"
                     f"🆔 UID: {uid}\n"
                     f"🌍 Region: {region}\n"
-                    f"📈 Added Today: {res.get('LikesGivenByAPI')}\n"
-                    f"🗿 Target Limit: {limit_val}\n"
+                    f"🤡 Likes Before: {res.get('LikesbeforeCommand')}\n"
+                    f"📈 Likes Added: {res.get('LikesGivenByAPI')}\n"
+                    f"🗿 Total Likes Now: {limit_val}\n"
                     f"👑 Credit: {OWNER_USERNAME}")
             bot.reply_to(message, text)
 
@@ -140,13 +138,9 @@ def list_auto(message):
     
     msg = "📊 Auto Like List:\n"
     for i, (uid, info) in enumerate(db.items(), 1):
-        msg += f"{i}. {uid} | {info['region']} | Target: {info['limit']} | Sent: {info['total_sent']}\n"
+        msg += f"{i}. {uid} | Limit: {info['limit']} | Sent: {info['total_sent']}\n"
     bot.reply_to(message, msg)
-
-@bot.message_handler(func=lambda m: True)
-def final_ignore(message):
-    pass
 
 if __name__ == "__main__":
     bot.infinity_polling()
-        
+                
