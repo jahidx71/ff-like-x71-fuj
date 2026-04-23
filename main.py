@@ -69,5 +69,8 @@ def ignore_all(message):
 
 if __name__ == "__main__":
     keep_alive()
+    # নিচের এই লাইনটি আপনার এরর সমাধান করবে
+    bot.remove_webhook() 
+    print("✅ Webhook removed and Bot started!")
     bot.infinity_polling()
-        
+    
