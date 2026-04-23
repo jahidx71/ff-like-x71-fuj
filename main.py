@@ -5,7 +5,6 @@ from threading import Thread
 import os
 
 # === CONFIG ===
-# আপনার দেওয়া তথ্য অনুযায়ী
 BOT_TOKEN = "8226051269:AAEguc-ggOp_sIOf2tlucCba1oiyXr2TP-A"
 OWNER_ID = 6207280168 
 OWNER_USERNAME = "@jahidx71"
@@ -13,13 +12,12 @@ OWNER_USERNAME = "@jahidx71"
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask('')
 
-# === FLASK SERVER FOR UPTIME ===
+# === FLASK SERVER FOR UPTIME (Cron-job এর জন্য) ===
 @app.route('/')
 def home():
     return "Bot is Alive and Running!"
 
 def run_flask():
-    # Render-এর জন্য সঠিক পোর্ট হ্যান্ডলিং
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port)
 
@@ -36,20 +34,28 @@ def call_api(region, uid):
     except:
         return None
 
-# === AUTHORIZATION FILTER ===
-# আপনি নিজে এবং যেকোনো বট থেকে কমান্ড আসলে কাজ করবে
+# === AUTHORIZATION FILTER (আপনার মূল চাওয়া) ===
 def is_authorized(message):
+    # ১. আপনি (Admin) নিজে পাঠালে কাজ করবে
     if message.from_user.id == OWNER_ID:
         return True
+    
+    # ২. মেসেজটি যদি কোনো বট (Any Bot) থেকে আসে তবে কাজ করবে
     if message.from_user.is_bot:
         return True
+    
+    # ৩. যদি ইনলাইন বা অন্য কোনো ভাবে বটের মাধ্যমে আসে
+    if message.via_bot is not None:
+        return True
+        
     return False
 
 # === LIKE COMMAND ===
 @bot.message_handler(func=lambda m: is_authorized(m), commands=['like'])
 def handle_like(message):
+    # কমান্ড ফরম্যাট চেক: /like bd 12345678
     args = message.text.split()
-    # ফরম্যাট: /like bd 12345678
+    
     if len(args) == 3:
         region, uid = args[1], args[2]
         res = call_api(region, uid)
@@ -65,27 +71,18 @@ def handle_like(message):
                     f"👑 Credit: {OWNER_USERNAME}")
             bot.reply_to(message, text)
         else:
+            # এরর মেসেজ শুধু আপনাকে (Admin) দেখাবে যাতে অন্য বট কনফিউজ না হয়
             if message.from_user.id == OWNER_ID:
                 bot.reply_to(message, "❌ API Error or Limit Reached.")
 
-# স্টার্ট কমান্ড
-@bot.message_handler(commands=['start'])
-def start(message):
-    if is_authorized(message):
-        bot.reply_to(message, "✅ Admin/Bot System Active. Use `/like region uid`.")
-
-# সাধারণ ব্যবহারকারীদের জন্য সাইলেন্ট মোড
+# সাধারণ ইউজারদের জন্য কোনো রেসপন্স নেই
 @bot.message_handler(func=lambda m: not is_authorized(m))
 def ignore_others(message):
     pass
 
-# === MAIN EXECUTION ===
+# === MAIN RUNNER ===
 if __name__ == "__main__":
-    # ১. প্রথমে ফ্লাস্ক সার্ভার চালু হবে (যাতে Cron-job লিঙ্ক খুঁজে পায়)
-    keep_alive()
-    print("✅ Web Server started...")
-    
-    # ২. এরপর বট পোলিং শুরু করবে
-    print("✅ Bot is polling...")
-    bot.infinity_polling()
-    
+    keep_alive() # সার্ভার স্টার্ট
+    print("✅ Web Server & Bot is starting...")
+    bot.infinity_polling(allowed_updates=['message', 'callback_query', 'edited_message'])
+                
