@@ -4,6 +4,7 @@ from flask import Flask
 from threading import Thread
 import os
 
+# CONFIG
 BOT_TOKEN = "8320059942:AAH0V-RlPUD_CKJ2dMB1lDUDxRDX0ubL0Pg"
 OWNER_ID = 6207280168 
 OWNER_USERNAME = "@jahidx71"
@@ -49,19 +50,19 @@ def handle_like(message):
         if res:
             status = res.get("status")
             if status == 1:
-                text = (f"✅ **Like Send Successful !**\n\n"
-                        f"👤 **Name: {res.get('PlayerNickname')}**\n"
-                        f"🆔 **UID: {uid}**\n"
-                        f"🌍 **Region: {region}**\n"
-                        f"🧩 **Likes Before: {res.get('LikesbeforeCommand')}**\n"
-                        f"📈 **Likes Added: {res.get('LikesGivenByAPI')}**\n"
-                        f"🗿 **Total Likes Now: {res.get('LikesafterCommand')}**\n\n"
-                        f"👑 **Credit: {OWNER_USERNAME}**")
-                bot.reply_to(message, text, parse_mode="Markdown")
+                text = (f"✅ Like Send Successful !\n\n"
+                        f"👤 Name: {res.get('PlayerNickname')}\n"
+                        f"🆔 UID: {uid}\n"
+                        f"🌍 Region: {region}\n"
+                        f"🧩 Likes Before: {res.get('LikesbeforeCommand')}\n"
+                        f"📈 Likes Added: {res.get('LikesGivenByAPI')}\n"
+                        f"🗿 Total Likes Now: {res.get('LikesafterCommand')}\n\n"
+                        f"👑 Credit: {OWNER_USERNAME}")
+                bot.reply_to(message, text)
             else:
-                bot.reply_to(message, "**Like Already Sent Today, This UID. 😐**", parse_mode="Markdown")
+                bot.reply_to(message, "Like Already Sent Today, This UID. 😐")
         else:
-            bot.reply_to(message, "**API Error Or Invalid UID.**", parse_mode="Markdown")
+            bot.reply_to(message, "API Error Or Invalid UID. 😐")
 
 @bot.message_handler(func=lambda m: True)
 def ignore_all(message):
@@ -69,8 +70,6 @@ def ignore_all(message):
 
 if __name__ == "__main__":
     keep_alive()
-    # নিচের এই লাইনটি আপনার এরর সমাধান করবে
-    bot.remove_webhook() 
-    print("✅ Webhook removed and Bot started!")
+    bot.remove_webhook()
     bot.infinity_polling()
-    
+        
