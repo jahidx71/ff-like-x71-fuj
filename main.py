@@ -1,12 +1,31 @@
 import telebot
 import requests
+from flask import Flask
+from threading import Thread
+import os
 
 # === CONFIG ===
+# আপনার দেওয়া তথ্য অনুযায়ী
 BOT_TOKEN = "8226051269:AAEguc-ggOp_sIOf2tlucCba1oiyXr2TP-A"
 OWNER_ID = 6207280168 
 OWNER_USERNAME = "@jahidx71"
 
 bot = telebot.TeleBot(BOT_TOKEN)
+app = Flask('')
+
+# === FLASK SERVER FOR UPTIME ===
+@app.route('/')
+def home():
+    return "Bot is Alive and Running!"
+
+def run_flask():
+    # Render-এর জন্য সঠিক পোর্ট হ্যান্ডলিং
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run_flask)
+    t.start()
 
 # === API CALL ===
 def call_api(region, uid):
@@ -17,12 +36,12 @@ def call_api(region, uid):
     except:
         return None
 
-# === FILTER LOGIC ===
-# এটি চেক করবে মেসেজটি আপনার (Owner) থেকে এসেছে কি না অথবা কোনো Bot থেকে এসেছে কি না
+# === AUTHORIZATION FILTER ===
+# আপনি নিজে এবং যেকোনো বট থেকে কমান্ড আসলে কাজ করবে
 def is_authorized(message):
     if message.from_user.id == OWNER_ID:
         return True
-    if message.from_user.is_bot: # যেকোনো বট থেকে রিকোয়েস্ট আসলে এটি True হবে
+    if message.from_user.is_bot:
         return True
     return False
 
@@ -46,16 +65,27 @@ def handle_like(message):
                     f"👑 Credit: {OWNER_USERNAME}")
             bot.reply_to(message, text)
         else:
-            # যদি এপিআই এরর দেয় তবে শুধু আপনাকে (এডমিন) জানাবে
             if message.from_user.id == OWNER_ID:
                 bot.reply_to(message, "❌ API Error or Limit Reached.")
 
-# এডমিন ছাড়া অন্য সাধারণ মানুষ কমান্ড দিলে কোনো উত্তর দেবে না
+# স্টার্ট কমান্ড
+@bot.message_handler(commands=['start'])
+def start(message):
+    if is_authorized(message):
+        bot.reply_to(message, "✅ Admin/Bot System Active. Use `/like region uid`.")
+
+# সাধারণ ব্যবহারকারীদের জন্য সাইলেন্ট মোড
 @bot.message_handler(func=lambda m: not is_authorized(m))
 def ignore_others(message):
     pass
 
+# === MAIN EXECUTION ===
 if __name__ == "__main__":
-    print("✅ Bot is active for Admin and other Bots...")
+    # ১. প্রথমে ফ্লাস্ক সার্ভার চালু হবে (যাতে Cron-job লিঙ্ক খুঁজে পায়)
+    keep_alive()
+    print("✅ Web Server started...")
+    
+    # ২. এরপর বট পোলিং শুরু করবে
+    print("✅ Bot is polling...")
     bot.infinity_polling()
     
