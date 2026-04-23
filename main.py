@@ -133,7 +133,7 @@ def delete_auto(message):
 def list_auto(message):
     db = load_db()
     if not db:
-        bot.reply_to(message, "📝 লিস্ট খালি।")
+        bot.reply_to(message, "📝 লিস্ট খালি আছে")
         return
     
     msg = "📊 Auto Like List:\n"
