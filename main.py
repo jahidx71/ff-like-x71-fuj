@@ -5,6 +5,7 @@ from threading import Thread
 import os
 
 # === CONFIG ===
+# আপনার দেওয়া তথ্য অনুযায়ী
 BOT_TOKEN = "8226051269:AAEguc-ggOp_sIOf2tlucCba1oiyXr2TP-A"
 OWNER_ID = 6207280168 
 OWNER_USERNAME = "@jahidx71"
@@ -12,7 +13,7 @@ OWNER_USERNAME = "@jahidx71"
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask('')
 
-# === FLASK SERVER FOR UPTIME (Cron-job এর জন্য) ===
+# === FLASK SERVER FOR UPTIME ===
 @app.route('/')
 def home():
     return "Bot is Alive and Running!"
@@ -34,55 +35,57 @@ def call_api(region, uid):
     except:
         return None
 
-# === AUTHORIZATION FILTER (আপনার মূল চাওয়া) ===
-def is_authorized(message):
-    # ১. আপনি (Admin) নিজে পাঠালে কাজ করবে
-    if message.from_user.id == OWNER_ID:
-        return True
-    
-    # ২. মেসেজটি যদি কোনো বট (Any Bot) থেকে আসে তবে কাজ করবে
-    if message.from_user.is_bot:
-        return True
-    
-    # ৩. যদি ইনলাইন বা অন্য কোনো ভাবে বটের মাধ্যমে আসে
-    if message.via_bot is not None:
-        return True
-        
-    return False
-
-# === LIKE COMMAND ===
-@bot.message_handler(func=lambda m: is_authorized(m), commands=['like'])
+# === LIKE COMMAND (ONLY FOR ADMIN) ===
+@bot.message_handler(commands=['like'])
 def handle_like(message):
-    # কমান্ড ফরম্যাট চেক: /like bd 12345678
+    # শুধুমাত্র আপনি (Admin) ব্যবহার করতে পারবেন
+    if message.from_user.id != OWNER_ID:
+        return # অন্য কেউ কমান্ড দিলে বট কোনো উত্তরই দেবে না
+
     args = message.text.split()
-    
+    # ফরম্যাট: /like bd 12345678
     if len(args) == 3:
         region, uid = args[1], args[2]
         res = call_api(region, uid)
         
-        if res and res.get("status") == 1:
-            text = (f"✅ Like Send Successful !\n\n"
-                    f"👤 Name: {res.get('PlayerNickname')}\n"
-                    f"🆔 UID: {uid}\n"
-                    f"🌍 Region: {region}\n"
-                    f"🤡 Likes Before: {res.get('LikesbeforeCommand')}\n"
-                    f"📈 Likes Added: {res.get('LikesGivenByAPI')}\n"
-                    f"🗿 Total Likes Now: {res.get('LikesafterCommand')}\n"
-                    f"👑 Credit: {OWNER_USERNAME}")
-            bot.reply_to(message, text)
+        if res:
+            status = res.get("status")
+            
+            # যদি লাইক সফলভাবে যায়
+            if status == 1:
+                text = (f"✅ **Like Send Successful !**\n\n"
+                        f"👤 **Name:** `{res.get('PlayerNickname')}`\n"
+                        f"🆔 **UID:** `{uid}`\n"
+                        f"🌍 **Region:** `{region}`\n"
+                        f"🧩 **Likes Before:** `{res.get('LikesbeforeCommand')}`\n"
+                        f"📈 **Likes Added:** `{res.get('LikesGivenByAPI')}`\n"
+                        f"🗿 **Total Likes Now:** `{res.get('LikesafterCommand')}`\n\n"
+                        f"👑 **Credit:** {OWNER_USERNAME}")
+                bot.reply_to(message, text, parse_mode="Markdown")
+            
+            # যদি আজ অলরেডি লাইক দেওয়া হয়ে থাকে
+            elif "Already Sent" in str(res.get("message", "")) or status == 0:
+                bot.reply_to(message, "❌ **Like Already Sent Today, This UID. 😐**", parse_mode="Markdown")
+            
+            else:
+                bot.reply_to(message, "❌ **API Error or Invalid UID.**")
         else:
-            # এরর মেসেজ শুধু আপনাকে (Admin) দেখাবে যাতে অন্য বট কনফিউজ না হয়
-            if message.from_user.id == OWNER_ID:
-                bot.reply_to(message, "❌ API Error or Limit Reached.")
+            bot.reply_to(message, "❌ **Server Timeout or API Down.**")
 
-# সাধারণ ইউজারদের জন্য কোনো রেসপন্স নেই
-@bot.message_handler(func=lambda m: not is_authorized(m))
-def ignore_others(message):
+# স্টার্ট কমান্ড (শুধুমাত্র এডমিনদের জন্য)
+@bot.message_handler(commands=['start'])
+def start(message):
+    if message.from_user.id == OWNER_ID:
+        bot.reply_to(message, "✅ **Admin Panel Active.**\nUse `/like region uid` to send likes.")
+
+# অন্য সব মেসেজ ইগনোর করবে
+@bot.message_handler(func=lambda m: True)
+def ignore_all(message):
     pass
 
 # === MAIN RUNNER ===
 if __name__ == "__main__":
-    keep_alive() # সার্ভার স্টার্ট
-    print("✅ Web Server & Bot is starting...")
-    bot.infinity_polling(allowed_updates=['message', 'callback_query', 'edited_message'])
-                
+    keep_alive() # Render-কে জাগিয়ে রাখার জন্য
+    print("✅ Admin-Only Bot is starting...")
+    bot.infinity_polling()
+    
