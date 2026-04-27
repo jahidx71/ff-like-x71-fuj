@@ -60,9 +60,9 @@ def handle_like(message):
                         f"👑 Credit: {OWNER_USERNAME}")
                 bot.reply_to(message, text)
             else:
-                bot.reply_to(message, "Like Already Sent Today, This UID. 😐")
+                bot.reply_to(message, "Like Send Failed. 😐")
         else:
-            bot.reply_to(message, "API Error Or Invalid UID. 😐")
+            bot.reply_to(message, "Like Send Failed. 😐")
 
 @bot.message_handler(func=lambda m: True)
 def ignore_all(message):
