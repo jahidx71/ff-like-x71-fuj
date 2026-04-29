@@ -56,7 +56,7 @@ def handle_like(message):
                         f"🌍 Region: {region}\n"
                         f"🧩 Likes Before: {res.get('LikesbeforeCommand')}\n"
                         f"📈 Likes Added: {res.get('LikesGivenByAPI')}\n"
-                        f"🗿 Total Likes Now: {res.get('LikesafterCommand')}\n\n"
+                        f"🗿 Likes Now: {res.get('LikesafterCommand')}\n\n"
                         f"👑 Credit: {OWNER_USERNAME}")
                 bot.reply_to(message, text)
             else:
