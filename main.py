@@ -25,7 +25,7 @@ def keep_alive():
     t.start()
 
 def call_api(region, uid):
-    url = f"https://free-fire-like-api-swart.vercel.app/like?uid={uid}&server_name={region}"
+    url = f"http://free-fire-xj-711-like-api.vercel.app/like?uid={uid}&server_name={region}"
     try:
         response = requests.get(url, timeout=25)
         return response.json()
