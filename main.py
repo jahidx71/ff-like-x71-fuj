@@ -51,7 +51,7 @@ def get_join_channel_button():
     return markup
 
 def call_api(region, uid):
-    url = f"http://free-fire-xj-711-like-api.vercel.app/like?uid={uid}&server_name={region}"
+    url = f"free-fire-xj-711-like-api.vercel.app/like?uid={uid}&server_name={region}"
     try:
         response = requests.get(url, timeout=25)
         return response.json()
@@ -68,14 +68,13 @@ def private_chat_restriction(message):
     )
     bot.reply_to(message, text, reply_markup=get_join_channel_button())
 
-# === গ্রুপে স্টার্ট কমান্ড (আপনার নতুন অনুরোধ অনুযায়ী) ===
+# === গ্রুপে স্টার্ট কমান্ড ===
 @bot.message_handler(commands=['start'])
 def start_in_group(message):
     if message.chat.type != "private":
         if message.from_user.id == OWNER_ID:
             bot.reply_to(message, "Admin ✅")
         else:
-            # সাধারণ ইউজার গ্রুপে /start দিলে চ্যানেল জয়েন বাটন পাবে
             bot.reply_to(message, "Please join our channel to use this bot:", reply_markup=get_join_channel_button())
 
 # === লাইক কমান্ড হ্যান্ডলার ===
@@ -83,6 +82,25 @@ def start_in_group(message):
 def handle_like(message):
     if message.chat.type == "private":
         return 
+
+    user_id = message.from_user.id
+    
+    # এডমিন চেক (এডমিন হলে সাবস্ক্রিপশন এবং লিমিট চেক হবে না)
+    if user_id != OWNER_ID:
+        if not is_subscribed(user_id):
+            bot.reply_to(message, "Please join our channel to use this command:", reply_markup=get_join_channel_button())
+            return
+
+        current_time = time.time()
+        wait_time = 24 * 3600 
+        if user_id in user_last_use:
+            elapsed_time = current_time - user_last_use[user_id]
+            if elapsed_time < wait_time:
+                remaining_seconds = wait_time - elapsed_time
+                hours = int(remaining_seconds // 3600)
+                minutes = int((remaining_seconds % 3600) // 60)
+                bot.reply_to(message, f"⏳ You Already Used Today\nTry After {hours}h {minutes}m", reply_markup=get_add_to_group_button())
+                return
 
     args = message.text.split()
     if len(args) != 3:
@@ -93,24 +111,6 @@ def handle_like(message):
         bot.reply_to(message, usage_text)
         return
 
-    user_id = message.from_user.id
-    current_time = time.time()
-    wait_time = 24 * 3600 
-
-    if user_id != OWNER_ID:
-        if not is_subscribed(user_id):
-            bot.reply_to(message, "Please join our channel to use this command:", reply_markup=get_join_channel_button())
-            return
-
-        if user_id in user_last_use:
-            elapsed_time = current_time - user_last_use[user_id]
-            if elapsed_time < wait_time:
-                remaining_seconds = wait_time - elapsed_time
-                hours = int(remaining_seconds // 3600)
-                minutes = int((remaining_seconds % 3600) // 60)
-                bot.reply_to(message, f"⏳ You Already Used Today\nTry After {hours}h {minutes}m", reply_markup=get_add_to_group_button())
-                return
-
     region, uid = args[1], args[2]
     res = call_api(region, uid)
     
@@ -118,7 +118,7 @@ def handle_like(message):
         status = res.get("status")
         if status == 1:
             if user_id != OWNER_ID:
-                user_last_use[user_id] = current_time
+                user_last_use[user_id] = time.time()
             
             text = (f"✅ Like Send Successful !\n\n"
                     f"👤 Name: {res.get('PlayerNickname')}\n"
@@ -142,4 +142,4 @@ if __name__ == "__main__":
     keep_alive()
     bot.remove_webhook()
     bot.infinity_polling()
-    
+        
