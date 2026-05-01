@@ -30,11 +30,17 @@ def keep_alive():
     t = Thread(target=run_flask)
     t.start()
 
+# মেম্বারশিপ চেক করার সবচেয়ে শক্তিশালী পদ্ধতি
 def is_subscribed(user_id):
     try:
-        status = bot.get_chat_member(CHANNEL_ID, user_id).status
-        return status in ['member', 'administrator', 'creator']
-    except:
+        member = bot.get_chat_member(CHANNEL_ID, user_id)
+        # মেম্বার, অ্যাডমিন বা ক্রিয়েটর যেকোনোটি হলেই True হবে
+        if member.status in ['member', 'administrator', 'creator']:
+            return True
+        else:
+            return False
+    except Exception as e:
+        # যদি মেম্বার না হয় বা অন্য কোনো এরর হয়
         return False
 
 def get_add_to_group_button():
@@ -51,14 +57,14 @@ def get_join_channel_button():
     return markup
 
 def call_api(region, uid):
-    url = f"free-fire-xj-711-like-api.vercel.app/like?uid={uid}&server_name={region}"
+    url = f"http://free-fire-x71-like-api.vercel.app/like?uid={uid}&server_name={region}"
     try:
         response = requests.get(url, timeout=25)
         return response.json()
     except:
         return None
 
-# === ইনবক্স (Private Chat) কন্ট্রোল ===
+# === ইনবক্স (Private Chat) ===
 @bot.message_handler(func=lambda m: m.chat.type == "private")
 def private_chat_restriction(message):
     text = (
@@ -75,7 +81,11 @@ def start_in_group(message):
         if message.from_user.id == OWNER_ID:
             bot.reply_to(message, "Admin ✅")
         else:
-            bot.reply_to(message, "Please join our channel to use this bot:", reply_markup=get_join_channel_button())
+            # গ্রুপে স্টার্ট দিলে চেক করবে জয়েন আছে কি না
+            if is_subscribed(message.from_user.id):
+                bot.reply_to(message, "আপনি আমাদের চ্যানেলে জয়েন আছেন ✅\nলাইক নিতে ব্যবহার করুন: /like bd 12345")
+            else:
+                bot.reply_to(message, "Please join our channel to use this bot:", reply_markup=get_join_channel_button())
 
 # === লাইক কমান্ড হ্যান্ডলার ===
 @bot.message_handler(commands=['like'])
@@ -85,7 +95,7 @@ def handle_like(message):
 
     user_id = message.from_user.id
     
-    # এডমিন চেক (এডমিন হলে সাবস্ক্রিপশন এবং লিমিট চেক হবে না)
+    # অ্যাডমিন বাদে বাকিদের জন্য চেক
     if user_id != OWNER_ID:
         if not is_subscribed(user_id):
             bot.reply_to(message, "Please join our channel to use this command:", reply_markup=get_join_channel_button())
@@ -104,10 +114,7 @@ def handle_like(message):
 
     args = message.text.split()
     if len(args) != 3:
-        usage_text = (
-            "❌ Usage: /like <region> <uid>\n\n"
-            "Example: /like bd 2471204638"
-        )
+        usage_text = "❌ Usage: /like <region> <uid>\n\nExample: /like bd 2471204638"
         bot.reply_to(message, usage_text)
         return
 
@@ -129,10 +136,8 @@ def handle_like(message):
                     f"🗿 Likes Now: {res.get('LikesafterCommand')}\n\n"
                     f"👑 Credit: {OWNER_USERNAME}")
             bot.reply_to(message, text, reply_markup=get_add_to_group_button())
-        
         elif status == 0 or "Already Send" in str(res.get("message", "")):
             bot.reply_to(message, "Like Already Send This UID ,😐", reply_markup=get_add_to_group_button())
-        
         else:
             bot.reply_to(message, "Like Send Failed ,😐", reply_markup=get_add_to_group_button())
     else:
@@ -142,4 +147,4 @@ if __name__ == "__main__":
     keep_alive()
     bot.remove_webhook()
     bot.infinity_polling()
-        
+    
