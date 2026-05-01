@@ -57,7 +57,7 @@ def get_join_channel_button():
     return markup
 
 def call_api(region, uid):
-    url = f"http://free-fire-x71-like-api.vercel.app/like?uid={uid}&server_name={region}"
+    url = f"http://free-fire-xj-711-like-api.vercel.app/like?uid={uid}&server_name={region}"
     try:
         response = requests.get(url, timeout=25)
         return response.json()
